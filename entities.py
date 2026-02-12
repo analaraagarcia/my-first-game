@@ -8,55 +8,31 @@ class Player(pygame.sprite.Sprite):
         # sprite sheet
         self.frames_dict = import_tilemap(24, 16, 'images', 'graphics', 'characters', 'blue_cat')
 
-        self.animations = {
-            # down
-            'down_idle':       [self.frames_dict[(0, 0)]],
-            'down_walk':       [self.frames_dict[(col, 0)]  for col in range(12, 16)],
-            'down_run':        [self.frames_dict[(col, 0)]  for col in range(16, 20)],
-            
-            # down left
-            'down_left_idle':  [self.frames_dict[(0, 2)]],
-            'down_left_walk':  [self.frames_dict[(col, 2)]  for col in range(12, 16)],
-            'down_left_run':   [self.frames_dict[(col, 2)]  for col in range(16, 20)],
-            
-            # left
-            'left_idle':       [self.frames_dict[(0, 4)]],
-            'left_walk':       [self.frames_dict[(col, 4)]  for col in range(12, 16)],
-            'left_run':        [self.frames_dict[(col, 4)]  for col in range(16, 20)],
-            
-            # up left
-            'up_left_idle':    [self.frames_dict[(0, 6)]],
-            'up_left_walk':    [self.frames_dict[(col, 6)]  for col in range(12, 16)],
-            'up_left_run':     [self.frames_dict[(col, 6)]  for col in range(16, 20)],
-            
-            # up
-            'up_idle':         [self.frames_dict[(0, 8)]],
-            'up_walk':         [self.frames_dict[(col, 8)]  for col in range(12, 16)],
-            'up_run':          [self.frames_dict[(col, 8)]  for col in range(16, 20)],
-            
-            # up right
-            'up_right_idle':   [self.frames_dict[(0, 10)]],
-            'up_right_walk':   [self.frames_dict[(col, 10)] for col in range(12, 16)],
-            'up_right_run':    [self.frames_dict[(col, 10)] for col in range(16, 20)],
-            
-            # right
-            'right_idle':      [self.frames_dict[(0, 12)]],
-            'right_walk':      [self.frames_dict[(col, 12)] for col in range(12, 16)],
-            'right_run':       [self.frames_dict[(col, 12)] for col in range(16, 20)],
-            
-            # down right
-            'down_right_idle': [self.frames_dict[(0, 14)]],
-            'down_right_walk': [self.frames_dict[(col, 14)] for col in range(12, 16)],
-            'down_right_run':  [self.frames_dict[(col, 14)] for col in range(16, 20)]
-        }
+        self.animations = {}
+
+        directions = ['down', 'down_left', 'left', 'up_left', 'up', 'up_right', 'right', 'down_right']
+        rows = [0, 2, 4, 6, 8, 10, 12, 14]
+
+        for direction, row in zip(directions, rows):
+            # idle (parado em pé - coluna 0)
+            self.animations[f'{direction}_idle'] = [self.frames_dict[(0, row)]]
+            # sit (sentar - colunas 0 a 3)
+            extra_sit_frames = range(0, 3) if row in [0, 8] else range(0, 2)
+            self.animations[f'{direction}_sit'] = [self.frames_dict[(col, row)] for col in range(0, 4)] + \
+                                                   [self.frames_dict[(col, row + 1)] for col in extra_sit_frames]
+            # walk (caminhada - colunas 12 a 15)
+            self.animations[f'{direction}_walk'] = [self.frames_dict[(col, row)] for col in range(12, 16)]
+            # run (corrida - colunas 16 a 19)
+            self.animations[f'{direction}_run'] = [self.frames_dict[(col, row)] for col in range(16, 20)] + \
+                                                   [self.frames_dict[(16, row + 1)]]
 
         for state, frames in self.animations.items():
             self.animations[state] = [pygame.transform.scale_by(frame, 2) for frame in frames]
 
+        self.status = 'down_idle'
+        self.old_status = self.status
         self.facing_direction = 'down'
-        self.status = 'down_walk'
         self.frame_index = 0
-        self.is_running = False
 
         self.image = self.animations[self.status][self.frame_index]
         self.rect = self.image.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
@@ -64,39 +40,50 @@ class Player(pygame.sprite.Sprite):
         # movement
         self.direction = pygame.Vector2()
         self.speed = 200
+        self.is_running = False
+
+        # timers
+        self.sit_timer = 0
+        self.sit_duration = 3.0 # tempo para o gato sentar
 
     def get_status(self):
-        if self.direction.length() > 0:
-            if self.direction.x > 0: # DIREITA
-                if self.direction.y > 0:   self.facing_direction = 'down_right'
-                elif self.direction.y < 0: self.facing_direction = 'up_right'
-                else:                      self.facing_direction = 'right'
-            elif self.direction.x < 0: # ESQUERDA
-                if self.direction.y > 0:   self.facing_direction = 'down_left'
-                elif self.direction.y < 0: self.facing_direction = 'up_left'
-                else:                      self.facing_direction = 'left'
-            else: # VERTICAL
-                if self.direction.y > 0:   self.facing_direction = 'down'
-                elif self.direction.y < 0: self.facing_direction = 'up'
+        if self.direction.x > 0:
+            if self.direction.y > 0:   self.facing_direction = 'down_right'
+            elif self.direction.y < 0: self.facing_direction = 'up_right'
+            else:                      self.facing_direction = 'right'
+        elif self.direction.x < 0:
+            if self.direction.y > 0:   self.facing_direction = 'down_left'
+            elif self.direction.y < 0: self.facing_direction = 'up_left'
+            else:                      self.facing_direction = 'left'
+        elif self.direction.y > 0:     self.facing_direction = 'down'
+        elif self.direction.y < 0:     self.facing_direction = 'up'
 
+        if self.direction.length() > 0:
+            self.sit_timer = 0
             suffix = '_run' if self.is_running else '_walk'
             self.status = self.facing_direction + suffix
-        
         else:
-            # parado
-            self.status = self.facing_direction + '_idle'
+            if self.sit_timer < self.sit_duration:
+                self.status = self.facing_direction + '_idle'
+            else:
+                self.status = self.facing_direction + '_sit'
+
+        if self.status != self.old_status:
+            self.frame_index = 0
+            self.old_status = self.status
 
     def animate(self, dt):
-        current_animatioin = self.animations[self.status]
+        current_animation = self.animations[self.status]
 
-        if self.direction.magnitude() != 0:
-            self.frame_index += 10 * dt
-            if self.frame_index >= len(current_animatioin):
+        self.frame_index += 10 * dt
+
+        if self.frame_index >= len(current_animation):
+            if '_sit' in self.status:
+                self.frame_index = len(current_animation) - 1
+            else:
                 self.frame_index = 0
-        else:
-            self.frame_index = 0
-        
-        self.image = current_animatioin[int(self.frame_index)]
+            
+        self.image = current_animation[int(self.frame_index)]
             
 
     def input(self):
@@ -111,6 +98,10 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, dt):
         self.input()
+
+        if self.direction.length() == 0:
+            self.sit_timer += dt
+
         self.get_status()
         self.rect.center += self.direction * self.speed * dt
         self.animate(dt)
