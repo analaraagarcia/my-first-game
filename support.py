@@ -39,19 +39,13 @@ def import_tilemap(cols, rows, *path):
     frames = {}
     surf = import_image(*path)
     
-    # Usamos o arredondamento para inteiro para evitar o erro de precisão
     cell_width = int(surf.get_width() / cols)
     cell_height = int(surf.get_height() / rows)
-    
-    # DICA: Se o corte continuar ruim, tente definir valores fixos 
-    # (ex: 32 ou 64) se você souber o tamanho real de cada quadro.
 
     for row in range(rows):
         for col in range(cols):
-            # Calculamos a posição exata de cada quadro
             cutout_rect = pygame.Rect(col * cell_width, row * cell_height, cell_width, cell_height)
-            
-            # Criamos a superfície do tamanho exato (inteiro)
+
             cutout_surf = pygame.Surface((cell_width, cell_height), pygame.SRCALPHA)
             cutout_surf.blit(surf, (0, 0), cutout_rect)
             
