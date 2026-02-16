@@ -1,5 +1,6 @@
 from settings import *
 from entities import Player
+from level import Level
 
 class Game:
     def __init__(self):
@@ -8,10 +9,7 @@ class Game:
         pygame.display.set_caption('The Game With No Name')
         self.clock = pygame.time.Clock()
 
-        # groups
-        self.all_sprites = pygame.sprite.Group()
-
-        self.player = Player(self.all_sprites)
+        self.level = Level()
 
     def run(self):
         while True:
@@ -23,10 +21,9 @@ class Game:
                     pygame.quit()
                     exit()
 
-            self.all_sprites.update(dt)
-            
             self.display_surface.fill('black')
-            self.all_sprites.draw(self.display_surface)
+
+            self.level.run(dt)
 
             pygame.display.update()
 

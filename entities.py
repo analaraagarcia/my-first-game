@@ -2,7 +2,7 @@ from settings import *
 from support import import_image, import_tilemap
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, groups):
+    def __init__(self, pos, groups):
         super().__init__(groups)
         
         # sprite sheet
@@ -47,7 +47,7 @@ class Player(pygame.sprite.Sprite):
         self.frame_index = 0
 
         self.image = self.animations[self.status][self.frame_index]
-        self.rect = self.image.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
+        self.rect = self.image.get_frect(center = pos)
 
         # movement
         self.direction = pygame.Vector2()
