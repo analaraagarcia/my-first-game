@@ -6,7 +6,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__(groups)
         
         # sprite sheet
-        self.frames_dict = import_tilemap(24, 16, 'images', 'graphics', 'characters', 'blue_cat')
+        self.frames_dict = import_tilemap(24, 16, 'images', 'graphics', 'characters', 'white_grey_cat')
 
         self.animations = {}
 
